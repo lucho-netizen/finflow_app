@@ -17,9 +17,9 @@ interface DashboardData {
 }
 
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("es-ES", {
     style: "currency",
-    currency: "USD",
+    currency: "COP",
     minimumFractionDigits: 2,
   }).format(value)
 }

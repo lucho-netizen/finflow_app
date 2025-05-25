@@ -36,7 +36,7 @@ export default function RegisterPage() {
         throw new Error(message)
       }
 
-      router.push('/')
+      router.push('/login')
     } catch (err: any) {
       setError(err.message || 'Registration failed')
     }

@@ -26,8 +26,31 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { exportToPdf } from "@/lib/export-pdf"
+import api from "@/lib/axios"
 
-const iconMap = {
+type Transaction = {
+  id: number
+  date: string
+  description: string
+  category: string
+  type: "income" | "expense"
+  amount: number
+}
+
+type Props = {
+  showAll?: boolean
+  newTransaction?: Transaction | null
+}
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 2,
+  }).format(value)
+}
+
+const iconMap: Record<string, JSX.Element> = {
   Salary: <WalletIcon className="h-4 w-4 text-emerald-500" />,
   Freelance: <WalletIcon className="h-4 w-4 text-emerald-500" />,
   Bonus: <WalletIcon className="h-4 w-4 text-emerald-500" />,
@@ -40,30 +63,25 @@ const iconMap = {
   Utilities: <HomeIcon className="h-4 w-4 text-rose-500" />,
 }
 
-export function RecentTransactions({ showAll = false, newTransaction = null }) {
-  const [transactions, setTransactions] = useState([])
-  const [totalTransactions, setTotalTransactions] = useState(0)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState([])
-  const [typeFilter, setTypeFilter] = useState([])
+export function RecentTransactions({ showAll = false, newTransaction = null }: Props) {
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
+  const [typeFilter, setTypeFilter] = useState<("income" | "expense")[]>([])
 
   useEffect(() => {
-    fetch("http://localhost:8000/dashboard/", {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setTransactions(data.transactions || [])
-        setTotalTransactions(data.total_transactions || 0)
+    api
+      .get("/dashboard")
+      .then((res) => {
+        const apiTransactions: Transaction[] = res.data.transactions || []
+
+        const combined = newTransaction
+          ? [newTransaction, ...apiTransactions.filter(t => t.id !== newTransaction.id)]
+          : apiTransactions
+
+        setTransactions(combined)
       })
       .catch(console.error)
-  }, [])
-
-  useEffect(() => {
-    if (newTransaction) {
-      setTransactions((prev) => [newTransaction, ...prev])
-    }
   }, [newTransaction])
 
   const filteredTransactions = transactions.filter((transaction) => {
@@ -71,14 +89,20 @@ export function RecentTransactions({ showAll = false, newTransaction = null }) {
       transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesCategory = categoryFilter.length === 0 || categoryFilter.includes(transaction.category)
-    const matchesType = typeFilter.length === 0 || typeFilter.includes(transaction.type)
+    const matchesCategory =
+      categoryFilter.length === 0 || categoryFilter.includes(transaction.category)
+
+    const matchesType =
+      typeFilter.length === 0 || typeFilter.includes(transaction.type)
 
     return matchesSearch && matchesCategory && matchesType
   })
 
-  const displayTransactions = showAll ? filteredTransactions : filteredTransactions.slice(0, 5)
   const categories = [...new Set(transactions.map((t) => t.category))]
+
+  const displayTransactions = showAll
+    ? filteredTransactions
+    : filteredTransactions.slice(0, 5)
 
   return (
     <div className="space-y-4">
@@ -162,13 +186,7 @@ export function RecentTransactions({ showAll = false, newTransaction = null }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {totalTransactions === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                  Bienvenido/a, aún no tienes movimientos. Empieza agregando tu primera transacción.
-                </TableCell>
-              </TableRow>
-            ) : displayTransactions.length > 0 ? (
+            {displayTransactions.length > 0 ? (
               displayTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell className="font-medium">{transaction.date.slice(0, 10)}</TableCell>
@@ -189,7 +207,7 @@ export function RecentTransactions({ showAll = false, newTransaction = null }) {
                         <ArrowDownIcon className="h-4 w-4 text-rose-500" />
                       )}
                       <span className={transaction.type === "income" ? "text-emerald-500" : "text-rose-500"}>
-                        ${transaction.amount.toFixed(2)}
+                        {formatCurrency(transaction.amount)}
                       </span>
                     </div>
                   </TableCell>
@@ -198,7 +216,7 @@ export function RecentTransactions({ showAll = false, newTransaction = null }) {
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                  No transactions found.
+                  Bienvenido/a, aún no tienes movimientos. Empieza agregando tu primera transacción.
                 </TableCell>
               </TableRow>
             )}
