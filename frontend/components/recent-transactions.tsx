@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, JSX } from "react"
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -27,7 +27,21 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { exportToPdf } from "@/lib/export-pdf"
 
-const iconMap = {
+type Transaction = {
+  id: number
+  date: string
+  description: string
+  category: string
+  amount: number
+  type: "income" | "expense"
+}
+
+type RecentTransactionsProps = {
+  showAll?: boolean
+  newTransaction?: Transaction | null
+}
+
+const iconMap: Record<string, JSX.Element> = {
   Salary: <WalletIcon className="h-4 w-4 text-emerald-500" />,
   Freelance: <WalletIcon className="h-4 w-4 text-emerald-500" />,
   Bonus: <WalletIcon className="h-4 w-4 text-emerald-500" />,
@@ -40,11 +54,11 @@ const iconMap = {
   Utilities: <HomeIcon className="h-4 w-4 text-rose-500" />,
 }
 
-export function RecentTransactions({ showAll = false, newTransaction = null }) {
-  const [transactions, setTransactions] = useState([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState([])
-  const [typeFilter, setTypeFilter] = useState([])
+export function RecentTransactions({ showAll = false, newTransaction = null }: RecentTransactionsProps) {
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
+  const [typeFilter, setTypeFilter] = useState<Array<"income" | "expense">>([])
 
   useEffect(() => {
     fetch("http://localhost:8000/dashboard/", {
@@ -58,7 +72,6 @@ export function RecentTransactions({ showAll = false, newTransaction = null }) {
       .catch(console.error)
   }, [])
 
-  // 🔁 Agregar nueva transacción al estado si cambia la prop
   useEffect(() => {
     if (newTransaction) {
       setTransactions((prev) => [newTransaction, ...prev])
@@ -106,7 +119,7 @@ export function RecentTransactions({ showAll = false, newTransaction = null }) {
                   <DropdownMenuCheckboxItem
                     key={category}
                     checked={categoryFilter.includes(category)}
-                    onCheckedChange={(checked) => {
+                    onCheckedChange={(checked: boolean) => {
                       if (checked) {
                         setCategoryFilter([...categoryFilter, category])
                       } else {
@@ -120,7 +133,7 @@ export function RecentTransactions({ showAll = false, newTransaction = null }) {
                 <div className="p-2 font-medium">Type</div>
                 <DropdownMenuCheckboxItem
                   checked={typeFilter.includes("income")}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     if (checked) {
                       setTypeFilter([...typeFilter, "income"])
                     } else {
@@ -132,7 +145,7 @@ export function RecentTransactions({ showAll = false, newTransaction = null }) {
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={typeFilter.includes("expense")}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     if (checked) {
                       setTypeFilter([...typeFilter, "expense"])
                     } else {

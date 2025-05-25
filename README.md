@@ -18,5 +18,5 @@ FinFlow es una aplicación moderna de finanzas personales que te permite visuali
 ### 1. Clona el repositorio
 
 ```bash
-git clone https://github.com/lucho-netizen/finflow.git
+git clone https://github.com/lucho-netizen/finflow_app.git
 cd finflow

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import axios from 'axios'
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,17 +19,22 @@ export default function Overview() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch('http://localhost:8000/dashboard/overview', {
-        method: "GET",
-        credentials: 'include',
-      })
-      const json = await res.json()
-      const formatted = json.map(item => ({
-        name: months[item.month],
-        income: item.income,
-        expense: item.expense,
-      }))
-      setData(formatted)
+      try {
+        const { data: response } = await axios.get(
+          'http://localhost:8000/dashboard/overview',
+          { withCredentials: true }
+        )
+
+        const formatted = response.map((item: any) => ({
+          name: months[item.month] ?? 'Unknown',
+          income: item.income ?? 0,
+          expense: item.expense ?? 0,
+        }))
+
+        setData(formatted)
+      } catch (error) {
+        console.error('Error fetching overview data:', error)
+      }
     }
 
     fetchData()
@@ -38,7 +44,7 @@ export default function Overview() {
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={data}>
         <XAxis dataKey="name" stroke="#888888" fontSize={12} />
-        <YAxis stroke="#888888" fontSize={12} tickFormatter={v => `$${v}`} />
+        <YAxis stroke="#888888" fontSize={12} tickFormatter={(v) => `$${v}`} />
         <Bar dataKey="income" stackId="a" fill="#22c55e" radius={[4, 4, 0, 0]} />
         <Bar dataKey="expense" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
       </BarChart>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, ChangeEvent, FormEvent } from "react"
 import { PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,10 +17,36 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 
-export function AddTransactionButton() {
+type TransactionType = "income" | "expense"
+type Category =
+  | "Salary"
+  | "Freelance"
+  | "Investment"
+  | "Bonus"
+  | "Other"
+  | "Housing"
+  | "Food"
+  | "Transportation"
+  | "Utilities"
+  | "Entertainment"
+  | "Shopping"
+
+interface FormData {
+  description: string
+  amount: string
+  type: TransactionType | ""
+  category: Category | ""
+  date: string
+}
+
+interface AddTransactionButtonProps {
+  onTransactionAdded?: () => void
+}
+
+export function AddTransactionButton({ onTransactionAdded }: AddTransactionButtonProps) {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     description: "",
     amount: "",
     type: "",
@@ -28,16 +54,16 @@ export function AddTransactionButton() {
     date: new Date().toISOString().split("T")[0],
   })
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSelectChange = (name, value) => {
+  const handleSelectChange = (name: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
 
     if (!formData.description || !formData.amount || !formData.type || !formData.category) {
@@ -67,7 +93,7 @@ export function AddTransactionButton() {
         throw new Error(err.detail || "Failed to create transaction")
       }
 
-      const data = await response.json()
+      await response.json()
 
       toast({
         title: "Transaction added",
@@ -81,8 +107,12 @@ export function AddTransactionButton() {
         category: "",
         date: new Date().toISOString().split("T")[0],
       })
+
       setOpen(false)
-    } catch (error) {
+
+      // 🔁 Callback para actualizar dashboard
+      if (onTransactionAdded) onTransactionAdded()
+    } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,

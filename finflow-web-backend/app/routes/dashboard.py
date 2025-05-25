@@ -108,3 +108,47 @@ async def get_monthly_overview(
 
     return result
 
+
+@router.get("/summary")
+async def get_balance_summary(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    today = datetime.utcnow()
+    start_this_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    start_last_month = (start_this_month.replace(day=1) - timedelta(days=1)).replace(day=1)
+
+    # Actual
+    result = await db.execute(
+        select(Transaction)
+        .where(Transaction.user_id == current_user.id)
+        .where(Transaction.date >= start_this_month)
+    )
+    current_transactions = result.scalars().all()
+    ingresos = sum(t.amount for t in current_transactions if t.type == "income")
+    egresos = sum(t.amount for t in current_transactions if t.type == "expense")
+    total_balance = ingresos - egresos
+
+    # Mes pasado
+    result = await db.execute(
+        select(Transaction)
+        .where(Transaction.user_id == current_user.id)
+        .where(Transaction.date >= start_last_month)
+        .where(Transaction.date < start_this_month)
+    )
+    previous_transactions = result.scalars().all()
+    ingresos_prev = sum(t.amount for t in previous_transactions if t.type == "income")
+    egresos_prev = sum(t.amount for t in previous_transactions if t.type == "expense")
+    prev_balance = ingresos_prev - egresos_prev
+
+    # Cambio porcentual
+    if prev_balance == 0:
+        balance_change = 0
+    else:
+        balance_change = ((total_balance - prev_balance) / abs(prev_balance)) * 100
+
+    return {
+        "total_balance": total_balance,
+        "balance_change": balance_change
+    }
