@@ -23,8 +23,6 @@ async def register(user: schemas.UserCreate, db: AsyncSession = Depends(database
     return new_user
 
 
-
-
 @router.post("/login", response_model=schemas.Token)
 async def login(user: schemas.UserLogin, db: AsyncSession = Depends(database.get_db), response: Response = None):
     result = await db.execute(select(models.User).where(models.User.email == user.email))

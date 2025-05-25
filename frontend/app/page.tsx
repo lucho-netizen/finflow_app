@@ -16,6 +16,14 @@ interface DashboardData {
   balance_change?: number
 }
 
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(value)
+}
+
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
 
@@ -55,7 +63,9 @@ export default function DashboardPage() {
                 <CardContent>
                   {dashboardData ? (
                     <>
-                      <div className="text-2xl font-bold">${dashboardData.saldo.toFixed(2)}</div>
+                      <div className="text-2xl font-bold">
+                        {formatCurrency(dashboardData.saldo)}
+                      </div>
                       <p className="text-xs text-muted-foreground">Compared to last month</p>
                     </>
                   ) : (
@@ -71,7 +81,9 @@ export default function DashboardPage() {
                 <CardContent>
                   {dashboardData ? (
                     <>
-                      <div className="text-2xl font-bold text-emerald-500">${dashboardData.ingresos.toFixed(2)}</div>
+                      <div className="text-2xl font-bold text-emerald-500">
+                        {formatCurrency(dashboardData.ingresos)}
+                      </div>
                       <p className="text-xs text-muted-foreground">This month's income</p>
                     </>
                   ) : (
@@ -87,7 +99,9 @@ export default function DashboardPage() {
                 <CardContent>
                   {dashboardData ? (
                     <>
-                      <div className="text-2xl font-bold text-rose-500">${dashboardData.egresos.toFixed(2)}</div>
+                      <div className="text-2xl font-bold text-rose-500">
+                        {formatCurrency(dashboardData.egresos)}
+                      </div>
                       <p className="text-xs text-muted-foreground">This month's expenses</p>
                     </>
                   ) : (
