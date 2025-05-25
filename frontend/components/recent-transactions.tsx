@@ -27,21 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { exportToPdf } from "@/lib/export-pdf"
 
-type Transaction = {
-  id: number
-  date: string
-  description: string
-  category: string
-  amount: number
-  type: "income" | "expense"
-}
-
-type RecentTransactionsProps = {
-  showAll?: boolean
-  newTransaction?: Transaction | null
-}
-
-const iconMap: Record<string, JSX.Element> = {
+const iconMap = {
   Salary: <WalletIcon className="h-4 w-4 text-emerald-500" />,
   Freelance: <WalletIcon className="h-4 w-4 text-emerald-500" />,
   Bonus: <WalletIcon className="h-4 w-4 text-emerald-500" />,
@@ -54,11 +40,12 @@ const iconMap: Record<string, JSX.Element> = {
   Utilities: <HomeIcon className="h-4 w-4 text-rose-500" />,
 }
 
-export function RecentTransactions({ showAll = false, newTransaction = null }: RecentTransactionsProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [searchTerm, setSearchTerm] = useState<string>("")
-  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
-  const [typeFilter, setTypeFilter] = useState<Array<"income" | "expense">>([])
+export function RecentTransactions({ showAll = false, newTransaction = null }) {
+  const [transactions, setTransactions] = useState([])
+  const [totalTransactions, setTotalTransactions] = useState(0)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState([])
+  const [typeFilter, setTypeFilter] = useState([])
 
   useEffect(() => {
     fetch("http://localhost:8000/dashboard/", {
@@ -68,6 +55,7 @@ export function RecentTransactions({ showAll = false, newTransaction = null }: R
       .then((res) => res.json())
       .then((data) => {
         setTransactions(data.transactions || [])
+        setTotalTransactions(data.total_transactions || 0)
       })
       .catch(console.error)
   }, [])
@@ -119,12 +107,10 @@ export function RecentTransactions({ showAll = false, newTransaction = null }: R
                   <DropdownMenuCheckboxItem
                     key={category}
                     checked={categoryFilter.includes(category)}
-                    onCheckedChange={(checked: boolean) => {
-                      if (checked) {
-                        setCategoryFilter([...categoryFilter, category])
-                      } else {
-                        setCategoryFilter(categoryFilter.filter((c) => c !== category))
-                      }
+                    onCheckedChange={(checked) => {
+                      setCategoryFilter((prev) =>
+                        checked ? [...prev, category] : prev.filter((c) => c !== category)
+                      )
                     }}
                   >
                     {category}
@@ -133,24 +119,20 @@ export function RecentTransactions({ showAll = false, newTransaction = null }: R
                 <div className="p-2 font-medium">Type</div>
                 <DropdownMenuCheckboxItem
                   checked={typeFilter.includes("income")}
-                  onCheckedChange={(checked: boolean) => {
-                    if (checked) {
-                      setTypeFilter([...typeFilter, "income"])
-                    } else {
-                      setTypeFilter(typeFilter.filter((t) => t !== "income"))
-                    }
+                  onCheckedChange={(checked) => {
+                    setTypeFilter((prev) =>
+                      checked ? [...prev, "income"] : prev.filter((t) => t !== "income")
+                    )
                   }}
                 >
                   Income
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={typeFilter.includes("expense")}
-                  onCheckedChange={(checked: boolean) => {
-                    if (checked) {
-                      setTypeFilter([...typeFilter, "expense"])
-                    } else {
-                      setTypeFilter(typeFilter.filter((t) => t !== "expense"))
-                    }
+                  onCheckedChange={(checked) => {
+                    setTypeFilter((prev) =>
+                      checked ? [...prev, "expense"] : prev.filter((t) => t !== "expense")
+                    )
                   }}
                 >
                   Expense
@@ -180,7 +162,13 @@ export function RecentTransactions({ showAll = false, newTransaction = null }: R
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayTransactions.length > 0 ? (
+            {totalTransactions === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                  Bienvenido/a, aún no tienes movimientos. Empieza agregando tu primera transacción.
+                </TableCell>
+              </TableRow>
+            ) : displayTransactions.length > 0 ? (
               displayTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell className="font-medium">{transaction.date.slice(0, 10)}</TableCell>
@@ -209,7 +197,7 @@ export function RecentTransactions({ showAll = false, newTransaction = null }: R
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                   No transactions found.
                 </TableCell>
               </TableRow>

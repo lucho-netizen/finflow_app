@@ -13,6 +13,7 @@ from app.auth_module import get_current_user
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 from app.models import Transaction  # no Movement
 
+
 @router.get("/")
 async def get_dashboard_data(
     current_user: User = Depends(get_current_user),
@@ -20,19 +21,28 @@ async def get_dashboard_data(
 ):
     today = datetime.utcnow()
     start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-   
+
+    # Todas las transacciones del mes actual
     result = await db.execute(
         select(Transaction)
         .where(Transaction.user_id == current_user.id)
         .where(Transaction.date >= start)
+        .order_by(Transaction.date.desc())
     )
     transactions = result.scalars().all()
 
-    for t in transactions:
-        ingresos = sum(t.amount for t in transactions if t.type == "income")
-        egresos = sum(t.amount for t in transactions if t.type == "expense")
-        saldo = ingresos - egresos
+    # Conteo total de transacciones del usuario (para saber si es nuevo)
+    total_result = await db.execute(
+        select(func.count(Transaction.id))
+        .where(Transaction.user_id == current_user.id)
+    )
+    total_count = total_result.scalar()
 
+    ingresos = sum(t.amount for t in transactions if t.type == "income")
+    egresos = sum(t.amount for t in transactions if t.type == "expense")
+    saldo = ingresos - egresos
+
+    # Agrupado diario para timeline
     res = await db.execute(
         select(
             func.date_trunc("day", Transaction.date).label("day"),
@@ -41,7 +51,7 @@ async def get_dashboard_data(
         )
         .where(Transaction.user_id == current_user.id)
         .group_by("day", Transaction.type)
-        .order_by("day") 
+        .order_by("day")
     )
     grouped = res.all()
 
@@ -52,7 +62,7 @@ async def get_dashboard_data(
             timeline[d] = {"income": 0, "expense": 0}
         timeline[d][tipo] = total
 
-    # serializa los movimientos para el frontend si lo necesitas
+    # Serializa para frontend
     serialized = [
         {
             "id": t.id,
@@ -70,9 +80,9 @@ async def get_dashboard_data(
         "egresos": egresos,
         "saldo": saldo,
         "timeline": timeline,
-        "transactions": serialized
+        "transactions": serialized,
+        "total_transactions": total_count
     }
-
 
 @router.get("/overview")
 async def get_monthly_overview(
