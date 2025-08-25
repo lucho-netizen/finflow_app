@@ -5,17 +5,27 @@ import os
 
 load_dotenv()
 
-DB_URL = f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+ENV = os.getenv("ENV", "local")
 
-# Motor asíncrono para la base de datos
+# Host: si estás en local usa localhost, si no usa "db"
+DB_HOST = os.getenv("DB_HOST", "localhost") if ENV == "local" else os.getenv("DB_HOST", "db")
+
+# Convierte el puerto en int con fallback
+DB_PORT = int(os.getenv("DB_PORT", 5432))
+
+DB_URL = (
+    f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
+    f"@{DB_HOST}:{DB_PORT}/{os.getenv('DB_NAME')}"
+)
+
+# Motor asíncrono
 engine = create_async_engine(DB_URL, echo=True)
 
-# Sesión asíncrona creada para ser usada en dependencias
+# Sesión asíncrona
 AsyncSessionLocal = sessionmaker(
     engine, expire_on_commit=False, class_=AsyncSession
 )
 
-# Dependencia para usar en FastAPI
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
