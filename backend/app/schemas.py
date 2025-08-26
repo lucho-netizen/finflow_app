@@ -1,7 +1,8 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
+# ================= AUTH =================
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -24,7 +25,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-
+# ================= TRANSACTION =================
 
 class TransactionBase(BaseModel):
     description: str
@@ -33,10 +34,8 @@ class TransactionBase(BaseModel):
     category: str
     date: datetime
 
-
 class TransactionCreate(TransactionBase):
     pass
-
 
 class TransactionRead(TransactionBase):
     id: int
@@ -44,3 +43,27 @@ class TransactionRead(TransactionBase):
 
     class Config:
         orm_mode = True
+
+# ================= GOALS =================
+
+class GoalBase(BaseModel):
+    goal_name: str
+    target_amount: float
+    deadline: date
+
+class GoalCreate(GoalBase):
+    pass
+
+class GoalOut(GoalBase):
+    id: int
+    current_progress: float
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# ================= MOTIVATIONS =================
+
+class MotivationOut(BaseModel):
+    motivation: str
+    sent_at: datetime

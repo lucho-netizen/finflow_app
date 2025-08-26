@@ -4,7 +4,7 @@ from app.database import engine
 from app.auth.router import router as auth_router
 from app.routes.dashboard import router  as dashboard_router
 from app.routes.transaction import router as transactions
-from app.routes import advisor
+from app.routes import goals
 
 
 from dotenv import load_dotenv
@@ -23,7 +23,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(transactions)
-app.include_router(advisor.router)
+app.include_router(goals.router)
 
 
 
