@@ -4,6 +4,9 @@ from app.database import engine
 from app.auth.router import router as auth_router
 from app.routes.dashboard import router  as dashboard_router
 from app.routes.transaction import router as transactions
+from app.routes import goals
+
+
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
@@ -20,12 +23,9 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(transactions)
+app.include_router(goals.router)
 
 
-@app.on_event("startup")
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
 
 @app.get("/")
 def root():
