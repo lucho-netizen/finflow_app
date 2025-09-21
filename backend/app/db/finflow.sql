@@ -176,6 +176,20 @@ CREATE TRIGGER trigger_log_transaction
 AFTER INSERT OR UPDATE OR DELETE ON transactions
 FOR EACH ROW EXECUTE FUNCTION log_transaction_changes();
 
+
+INSERT INTO categories (name, type) VALUES
+('Salary', 'Income'),
+('Freelance', 'Income'),
+('Investment', 'Income'),
+('Bonus', 'Income'),
+('Other Income', 'Income'),
+('Food', 'Expense'),
+('Transport', 'Expense'),
+('Rent', 'Expense'),
+('Entertainment', 'Expense'),
+('Other Expense', 'Expense');
+
+
 -- ==============================
 -- Fin del script
 -- ==============================
