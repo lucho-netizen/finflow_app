@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, extract
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from sqlalchemy.orm import selectinload
 
 
 
@@ -65,10 +67,9 @@ async def get_dashboard_data(
     # Serializa para frontend
     serialized = [
         {
-            "id": t.id,
             "amount": t.amount,
             "type": t.type,
-            "category": t.category,
+            "category": t.category_id,
             "description": t.description,
             "date": t.date.isoformat(),
         }
@@ -124,17 +125,22 @@ async def get_balance_summary(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    
     today = datetime.utcnow()
     start_this_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     start_last_month = (start_this_month.replace(day=1) - timedelta(days=1)).replace(day=1)
 
+    start =  start_last_month
+
     # Actual
     result = await db.execute(
         select(Transaction)
+        .options(selectinload(Transaction.category))  # carga categorías
         .where(Transaction.user_id == current_user.id)
-        .where(Transaction.date >= start_this_month)
-    )
+        .where(Transaction.date >= start)
+        .order_by(Transaction.date.desc())
+)
     current_transactions = result.scalars().all()
     ingresos = sum(t.amount for t in current_transactions if t.type == "income")
     egresos = sum(t.amount for t in current_transactions if t.type == "expense")

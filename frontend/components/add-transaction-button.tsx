@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, ChangeEvent, FormEvent } from "react"
+import { useState, useEffect, ChangeEvent, FormEvent } from "react"
 import { PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,24 +18,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 
 type TransactionType = "income" | "expense"
-type Category =
-  | "Salary"
-  | "Freelance"
-  | "Investment"
-  | "Bonus"
-  | "Other"
-  | "Housing"
-  | "Food"
-  | "Transportation"
-  | "Utilities"
-  | "Entertainment"
-  | "Shopping"
+
+interface Category {
+  id: number
+  name: string
+  type: string
+}
 
 interface FormData {
   description: string
   amount: string
   type: TransactionType | ""
-  category: Category | ""
+  category_id: string
   date: string
 }
 
@@ -46,13 +40,36 @@ interface AddTransactionButtonProps {
 export function AddTransactionButton({ onTransactionAdded }: AddTransactionButtonProps) {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
   const [formData, setFormData] = useState<FormData>({
     description: "",
     amount: "",
     type: "",
-    category: "",
+    category_id: "",
     date: new Date().toISOString().split("T")[0],
   })
+
+  // 🔄 Traer categorías
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/categories", {
+          credentials: "include",
+        })
+        if (!res.ok) throw new Error("Failed to fetch categories")
+        const data = await res.json()
+        setCategories(data)
+      } catch (error) {
+        console.error(error)
+        toast({
+          title: "Error",
+          description: "Could not load categories",
+          variant: "destructive",
+        })
+      }
+    }
+    fetchCategories()
+  }, [toast])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -66,7 +83,7 @@ export function AddTransactionButton({ onTransactionAdded }: AddTransactionButto
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
 
-    if (!formData.description || !formData.amount || !formData.type || !formData.category) {
+    if (!formData.description || !formData.amount || !formData.type || !formData.category_id) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -83,8 +100,11 @@ export function AddTransactionButton({ onTransactionAdded }: AddTransactionButto
         },
         credentials: "include",
         body: JSON.stringify({
-          ...formData,
+          description: formData.description,
           amount: parseFloat(formData.amount),
+          type: formData.type,
+          category_id: parseInt(formData.category_id),
+          date: formData.date,
         }),
       })
 
@@ -100,17 +120,17 @@ export function AddTransactionButton({ onTransactionAdded }: AddTransactionButto
         description: `${formData.type === "income" ? "Income" : "Expense"} of $${formData.amount} has been added.`,
       })
 
+      // Reset form
       setFormData({
         description: "",
         amount: "",
         type: "",
-        category: "",
+        category_id: "",
         date: new Date().toISOString().split("T")[0],
       })
 
       setOpen(false)
 
-      // 🔁 Callback para actualizar dashboard
       if (onTransactionAdded) onTransactionAdded()
     } catch (error: any) {
       toast({
@@ -136,6 +156,7 @@ export function AddTransactionButton({ onTransactionAdded }: AddTransactionButto
             <DialogDescription>Enter the details of your transaction below.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {/* Description */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="description" className="text-right">Description</Label>
               <Input
@@ -146,6 +167,7 @@ export function AddTransactionButton({ onTransactionAdded }: AddTransactionButto
                 className="col-span-3"
               />
             </div>
+            {/* Amount */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">Amount</Label>
               <Input
@@ -159,6 +181,7 @@ export function AddTransactionButton({ onTransactionAdded }: AddTransactionButto
                 className="col-span-3"
               />
             </div>
+            {/* Type */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="type" className="text-right">Type</Label>
               <Select value={formData.type} onValueChange={(value) => handleSelectChange("type", value)}>
@@ -171,35 +194,28 @@ export function AddTransactionButton({ onTransactionAdded }: AddTransactionButto
                 </SelectContent>
               </Select>
             </div>
+            {/* Category */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">Category</Label>
-              <Select value={formData.category} onValueChange={(value) => handleSelectChange("category", value)}>
-                <SelectTrigger id="category" className="col-span-3">
+              <Label htmlFor="category_id" className="text-right">Category</Label>
+              <Select
+                value={formData.category_id}
+                onValueChange={(value) => handleSelectChange("category_id", value)}
+              >
+                <SelectTrigger id="category_id" className="col-span-3">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {formData.type === "income" ? (
-                    <>
-                      <SelectItem value="Salary">Salary</SelectItem>
-                      <SelectItem value="Freelance">Freelance</SelectItem>
-                      <SelectItem value="Investment">Investment</SelectItem>
-                      <SelectItem value="Bonus">Bonus</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </>
-                  ) : (
-                    <>
-                      <SelectItem value="Housing">Housing</SelectItem>
-                      <SelectItem value="Food">Food</SelectItem>
-                      <SelectItem value="Transportation">Transportation</SelectItem>
-                      <SelectItem value="Utilities">Utilities</SelectItem>
-                      <SelectItem value="Entertainment">Entertainment</SelectItem>
-                      <SelectItem value="Shopping">Shopping</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </>
-                  )}
+                  {categories
+                    .filter((c) => c.type.toLowerCase() === formData.type)
+                    .map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
+            {/* Date */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="date" className="text-right">Date</Label>
               <Input
@@ -220,3 +236,5 @@ export function AddTransactionButton({ onTransactionAdded }: AddTransactionButto
     </Dialog>
   )
 }
+
+export default AddTransactionButton
