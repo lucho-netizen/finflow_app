@@ -1,16 +1,21 @@
-create DATABASE finflow;
+-- ==============================
+-- Crear base de datos si no existe
+-- ==============================
+CREATE DATABASE IF NOT EXISTS finflow;
 
-DROP TABLE IF EXISTS transactions CASCADE;
+-- ==============================
+-- Tabla: users
+-- ==============================
 DROP TABLE IF EXISTS users CASCADE;
 
--- ======================
--- Tabla: users
--- ======================
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    passwords_keys VARCHAR(255) NOT NULL,
+    passwords_keys TEXT IS NOT NULL,
+    role VARCHAR(20) DEFAULT 'user',
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
@@ -18,9 +23,11 @@ CREATE TABLE users (
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 
--- ======================
+-- ==============================
 -- Tabla: transactions
--- ======================
+-- ==============================
+DROP TABLE IF EXISTS transactions CASCADE;
+
 CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -28,8 +35,9 @@ CREATE TABLE transactions (
     type VARCHAR(50) NOT NULL,
     category VARCHAR(255),
     description TEXT,
-    date TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW()
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    recurring BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Índices para acelerar consultas
@@ -37,6 +45,31 @@ CREATE INDEX idx_transactions_user ON transactions(user_id);
 CREATE INDEX idx_transactions_date ON transactions(date);
 CREATE INDEX idx_transactions_category ON transactions(category);
 
+-- ==============================
+-- Seguridad a nivel de fila (RLS)
+-- ==============================
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+
+-- Política: solo ver tus propias transacciones
+CREATE POLICY select_own ON transactions
+  FOR SELECT
+  USING (user_id = current_setting('request.user_id')::INTEGER);
+
+-- Política: solo insertar si eres tú
+CREATE POLICY insert_own ON transactions
+  FOR INSERT
+  WITH CHECK (user_id = current_setting('request.user_id')::INTEGER);
+
+-- Política: solo borrar tus propias transacciones
+CREATE POLICY delete_own ON transactions
+  FOR DELETE
+  USING (user_id = current_setting('request.user_id')::INTEGER);
+
+-- Política: solo editar tus propias transacciones
+CREATE POLICY update_own ON transactions
+  FOR UPDATE
+  USING (user_id = current_setting('request.user_id')::INTEGER);
+
 -- ====================================
--- 🚀 Fin del esquema
+-- ✅ Esquema completo de Finflow
 -- ====================================
